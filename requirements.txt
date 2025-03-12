@@ -1,0 +1,4 @@
+DESeq2
+dplyr
+tidyr
+stringr
