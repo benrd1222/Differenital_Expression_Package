@@ -68,5 +68,13 @@ out<-DE_cluster(dds,counts,c_gene)
 # EnhancedVolcano(res, lab=res_df$V1, x='log2FoldChange', y='pvalue') # more customizable plot
 
 
-
-
+while(TRUE){
+  usr_in <- readline(prompt = "Enter the number of clusters as visualized by the dendrogram: ")
+  
+  usr_in<-suppressWarnings(as.numeric(usr_in))
+  if(!is.na(usr_in)){
+    break
+  }else{
+    print("Please enter a numeric value")
+  }
+}

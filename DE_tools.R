@@ -331,7 +331,17 @@ DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,heatmap=FALSE){
   
   # user will determine the amount of clusters as determined by visual analysis of
   # the dendrogram
-  user_input <- readline(prompt = "Enter the number of clusters as visualized by the dendrogram: ")
+  while(TRUE){
+    usr_in <- readline(prompt = "Enter the number of clusters as visualized by the dendrogram: ")
+    usr_in<-suppressWarnings(as.numeric(usr_in))
+    
+    if(!is.na(usr_in)){
+      break
+    }else{
+      print("Please enter a numeric value")
+    }
+  }
+  
   cut <- as.numeric(user_input)
   
   return(as.data.frame(cutree(gene_hclust, k = cut)))
