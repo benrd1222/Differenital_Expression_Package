@@ -82,7 +82,7 @@ DE_prep <- function(x,m,f=FALSE){
   if(colnames(counts)[1]!= "gene.id" | colnames(counts)[2] != "gene.name"){stop("the names of the first two columns of the count dataframe do not match the required gene.id and gene.name format")}
   
   #now that counts is clean and order how we expect
-  genes<-cbind(counts[,1],counts[,2]) 
+  genes<-cbind(counts[,1],counts[,2])
   
   row.names(counts)<-counts[,1]
   counts<-counts[,-c(1,2)]
@@ -223,76 +223,124 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
   else{return(dds)}
 }
 
-DE_summary <- function(counts,res,p=0.01,genes=FALSE,normalize=TRUE,ab=0.5,heatmap=FALSE){
+DE_summary <- function(res,genes,p=FALSE){
   ## IN: 
-  # counts- the count matrix as output by DE_prep, only numbers.
+  #
   # res- the results object as determined by the user with the dds output from DE_run
   # p- p-value to determine cutoff of candidate gene, this also indicates you
   #    handed DE_viz to handle the full list of genes and geneIDs to filter the results object
+  #
   # genes- a list of candidate genes if already determined or the full genes matrix
+  #         both need to be a dataframe with column 1 being ids and column 2 being names
+  #     note:
+  #     genes is not a required argument and DE_summary(res, p) will just filter
+  #     on the p-value but it will not append gene names to the data frame
+  #
+  ## DOES: creates candidate genes or takes in candidate genes and organizes the
+  #        results into a useful dataframe. Essentially just a quick filtering function
+  #        based on a p-value or a vector of gene names
+  #        
+  #
+  ## OUT: filters by p-value of results if given a p-value or filters by listed genes
+  #       otherwise
+  
+  if(class(res)!="DESeqResults"){stop("Please ensure that res is of class DESeqResults")}
+  
+  res_df <- as.data.frame(res)
+  
+  if(p!=FALSE){
+    res_df <- res_df %>%
+      filter(padj < 0.01)
+  }
+  
+  if(!missing(genes)){
+    #quick checks
+    tryCatch({colnames(genes)<-c("gene.id","gene.name")},error=function(e){
+      message("Make sure genes=df[ids,names]")
+    })
+    
+    
+    
+    # making genes a vector for merging by rowname
+    rownames(genes)<-genes[,1]# consider adding this to the DE_prep flow
+    genes<-genes[,-1, drop=FALSE]
+    
+    
+    
+    #otherwise we assume that the merging will filter with all = FALSE dropping unmatched ids
+    res_df = merge(res_df, genes, by='row.names', all=FALSE)
+  }
+  
+  return(res_df) # the fact I'm going to return so much means this may not make sense
+}
+
+DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,heatmap=FALSE){
+  ## IN:
+  # dds: the DESeqDataSet for normalization
+  # counts- the raw count matrix or the normalized count matrix
+  # c_genes- the candidate genes. rownames() of res_df as output by DE_summary()
   # normalize- default is to normalize the count matrix as it is likely coming in
   #            straight from DE_run, but you can give a normalized count matrix
-  #            just set normalize to FALSE as well
-  # abline- customize cutoff for heirarchical clustering dendrogram
+  #            just set normalize to FALSE (also means you don't need to pass a dds)
   # heatmap- optional way of presenting data
-  #
-  ## DOES: organizes your count matrix by normalizing if asked, creating candidate genes
-  #        from a results object unless provided, and creates a cluster tree and returns
-  #        relevant data to making said tree
-  #
-  ## OUT: returns the results for only candidate genes, a volcano plot, and cluster
-  #       dendrogram and dataframe utilizing the candidate genes only
+  
+  #nope this is going to be less user friendly
+  # we will be assuming the raw counts are being submitted (raw data)
+  # the dds that the raw counts were used on (DE_run)
+  # the candidate_gene id's (DE_summary)
+  
+  require(amap)
+  
+  # it was going to be annoying to stack this in to one visualization call and also
+  # probably just not helpful, so I'm not
+  stopifnot(is.logical(heatmap))
+  stopifnot(class(dds)=="DESeqDataSet")
+  if(is.null(dds) && normalize==TRUE){stop("please provide a DESeqDataSet to estimate size factor for normalization")}
   
   
-  # considering having each visualization have a default TRUE that can be turned off
-  # seems like horrible design but quite easy
-
-  # if not passed a set of candidate genes, determine the candidate genes using
-  # the given results. I am not bothering to check whether the results passed
-  # match the count count matrix passed... just don't do that... please
-  if(genes==FALSE){
-    candidate_genes <- res %>% 
-      filter(padj < p) %>%
-      pull(gene) %>%
-      unique()  
-  }
-  
-  #make the dataframe of only candidate genes to return
-  
-  
-  #normalization
   if(normalize==TRUE){
-    # I forget this right now but something over each column
-    # norm_cts <- lapply(counts, use_function(x),(x,x-mean/sd)) probably looks vaguely like that
+    #dealing with raw counts if we need to normalize
+    rownames(counts)<-strip(rownames(counts))
+    colnames(counts)<-strip(colnames(counts))
+    stopifnot(colnames(counts)[1]=="gene.id")
+    rownames(counts)<-counts[,1]
+    counts[,-c(1,2)]
+    
+    sf<-estimateSizeFactors(dds)
+    hclust_matrix <- as.data.frame(counts(sf, normalized=TRUE))
   }
+  else{
+    #assume if they turned normalize false then counts is as they want
+    stopifnot(all(sapply(counts, is.numeric))) # at least check they passed a matrix
+    hclust_matrix <- counts
+    }
+
+  hclust_matrix<-hclust_matrix[rownames(hclust_matrix) %in% c_genes,]
   
-  hclust_matrix <- norm_cts %>% 
-    select(-gene) %>% 
-    as.matrix()
-  
-  # ENSURE THAT THE ROWNAMES HAVE MADE IT THIS FAR OR ADD THEM BACK IN
-  
-  # get the entries as z-scores
   hclust_matrix <- hclust_matrix %>% 
     t() %>% 
     scale() %>% 
     t()
   
-  # now we need distance, generally genomics data is used with correlation
-  require(amap) # no need to reinvent the wheel but TODO: make sure this does what you think it does
-  gene_dist <- Dist(hclust_matrix,method="pearson")
+  gene_dist <- amap::Dist(hclust_matrix, method="pearson")
   
   gene_hclust <- hclust(gene_dist, method = "complete")
   
   plot(gene_hclust, labels = FALSE)
-  abline(h = ab, col = "#E34234", lwd = 2) # add horizontal line to illustrate cutting dendrogram
+  abline(h = 0.5, col = "brown", lwd = 2) #make the height definable maybe???
   
-  # have to determine your own clustering grouping likely doesn't need to be in this function
-  # gene_cluster <- cutree(gene_hclust, k = 5) %>% 
-  #  enframe() %>% 
-  #  rename(gene = name, cluster = value)
+  # user will determine the amount of clusters as determined by visual analysis of
+  # the dendrogram
+  user_input <- readline(prompt = "Enter the number of clusters as visualized by the dendrogram: ")
+  cut <- as.numeric(user_input)
   
-  return("a lot of things") # the fact I'm going to return so much means this may not make sense
+  return(as.data.frame(cutree(gene_hclust, k = cut)))
+
+  if(heatmap==TRUE){
+    require(ComplexHeatmap)
+    Heatmap(hclust_matrix, show_row_names = FALSE)
+  }
+  
 }
 
 
