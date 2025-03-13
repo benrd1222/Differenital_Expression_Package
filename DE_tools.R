@@ -6,8 +6,10 @@
 
 # TODO: add some visualization functions
 
+# TODO: review the S3 classes documentation, would be good for future projects
+
 if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr)) {
-  writeLines(readLines("requirements.txt", 4))
+  writeLines(readLines("requirements.txt"))
   stop("You don't have all of the necessary libraries loaded... please see the
          requirements.txt file for details")
 }
@@ -223,14 +225,71 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
   
 }
 
-cluster <- function(ddsm,genes=FALSE,abline=0.5,heatmap=FALSE){
-  require(ggplot2, MAplot)
-  # takes in some DESeq data structure matrix and a vector of candidate genes
-  # so should already have run the results DESeq function outside to determine those
-  # this function will take care of sorting and normalizing and then outputing a tree
+DE_cluster <- function(counts,res,p=0.01,genes=FALSE,normalize=TRUE,ab=0.5,heatmap=FALSE){
+  ## IN: 
+  # counts- the count matrix as output by DE_prep, only numbers.
+  # res- the results object as determined by the user with the dds output from DE_run
+  # p- p-value to determine cutoff of candidate gene
+  # genes- a list of candidate genes if already determined or you want more specific control
+  #        of who is part of the clustering process
+  # normalize- default is to normalize the count matrix as it is likely coming in
+  #            straight from DE_run
+  # abline- customize cutoff for heirarchical clustering denrogram
+  # heatmap- optional way of presenting data
+  #
+  ## DOES: organizes your count matrix by normalizing if asked, creating candidate genes
+  #        from a results object unless provided, and creates a cluster tree and returns
+  #        relevant data to making said tree
+  #
+  ## OUT: returns a the output of hclust() after some data fanangiling
   
-  #genes = FALSE indicated that if not given it assumes that your ddsm is already filtered
+  
+  # if not passed a set of candidate genes, determine the candidate genes using
+  # the given results. I am not bothering to check whether the results passed
+  # match the count count matrix passed... just don't do that... please
+  if(genes==FALSE){
+    candidate_genes <- res %>% 
+      filter(padj < p) %>%
+      pull(gene) %>%
+      unique()  
+  }
+  
+  #normalization
+  if(normalize==TRUE){
+    # I forget this right now but something over each column
+    # norm_cts <- lapply(counts, use_function(x),(x,x-mean/sd)) probably looks vaguely like that
+  }
+  
+  
+  hclust_matrix <- norm_cts %>% 
+    select(-gene) %>% 
+    as.matrix()
+  
+  # ENSURE THAT THE ROWNAMES HAVE MADE IT THIS FAR OR ADD THEM BACK IN
+  
+  # get the entries as z-scores
+  hclust_matrix <- hclust_matrix %>% 
+    t() %>% 
+    scale() %>% 
+    t()
+  
+  # now we need distance, generally genomics data is used with correlation
+  require(amap) # no need to reinvent the wheel but TODO: make sure this does what you think it does
+  gene_dist <- Dist(hclust_matrix,method="pearson")
+  
+  gene_hclust <- hclust(gene_dist, method = "complete")
+  
+  plot(gene_hclust, labels = FALSE)
+  abline(h = ab, col = "#E34234", lwd = 2) # add horizontal line to illustrate cutting dendrogram
+  
+  # have to determine your own clustering grouping likely doesn't need to be in this function
+  # gene_cluster <- cutree(gene_hclust, k = 5) %>% 
+  #  enframe() %>% 
+  #  rename(gene = name, cluster = value)
+  
+  return(gene_hclust)
 }
+
 
 
 
