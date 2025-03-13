@@ -1,38 +1,60 @@
 rm(list=ls()) 
 source("DE_tools.R")
 
-x<- "test_data/counts.tsv"
-m<- "test_data/meta.tsv"
+# new data
+counts = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/resources/DifferentialSecondaryDataFiles.RnaSeq/raw-counts")
 
-# bad example need to delete some columns with this jank data should really consider
-# a better test.
+# Download metadata
+meta = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/resources/ExperimentDesignFile.RnaSeq/experiment-design")
 
-counts<-read.delim(x)
-meta<-read.delim(m)
+factor1<-colnames(meta)[10]
 
-meta <- meta[-c(8,11:13),] #removing extra columns don't replicate
-
-factor1<-colnames(meta)[6]
-factor2<-colnames(meta)[12]
-
-f<-sprintf("~%s+%s",factor1,factor2)
-
-# Main functionality test -----
-
-# out<-DE_prep(counts,meta,f)
-# working as intended
-# 
-# count_out<-out[[1]]
-# meta_out<-out[[2]]
-# genes<-out[[4]]
+f<-sprintf("~%s",factor1)
 
 
-out<-DE_run(counts,meta)
+out<-DE_prep(counts,meta,f)
 
+count_out<-out[[1]]
+meta_out<-out[[2]]
+formula_out<-out[[3]]
+genes<-out[[4]]
  
-# oh I literally chose the worst test case, this example data is randomly missing controls
-# oh it might be read.delim just ignores empty values and they may have left it empty
-# instead of righting control
+# working as intended, we get the counts and a metadata structure with a factor 
+# of two levels which matches this experiment as a knockout experiment
+
+out<-DE_run(counts,meta,f,g=T)
+
+dds<-out[[1]]
+genes<-out[[2]]
+
+res = results(out[[1]], contrast=c("sample.characteristic.genotype.", "wildtypegenotype", "snai1knockout"), alpha=1e-5)
+res
+
+
+# this is a check against the data in the tutorial from OMGenomics
+# https://github.com/omgenomics/youtube/blob/main/2024-12-17-deseq2-intro/tutorial.R
+res_df = as.data.frame(res)
+head(res_df) #row names exist
+head(genes)
+row.names(genes)<-genes[,1]
+genes<-genes[,-1,drop=FALSE]
+
+res_df = merge(res_df, genes, by='row.names')
+head(res_df)
+
+genes_to_check = c("thy1", "sfmbt2", "pasd1", "snai1")
+res_df[res_df[,8] %in% genes_to_check, ]
+
+#they look exactly the same
+
+plotMA(res) #basic MA plot
+
+BiocManager::install('EnhancedVolcano')
+library(EnhancedVolcano)
+EnhancedVolcano(res, lab=res_df$V1, x='log2FoldChange', y='pvalue') # more customizable plot
+
+
+
 
 #test:
 # f=regular: works
@@ -43,23 +65,6 @@ out<-DE_run(counts,meta)
 # x,m <- .csv: unknown
 # x,m <- .tsv: works
 
-# Visualization: never done unit testing before but would be better to have small
-# test cases baked into like a vignette of the package
-#
-# something like
-# test_DE_prep<-function(exampleargs)){
-#   if(expected_results == DE_prep(exampleargs)){print("Working as intended")}
-#   }
-#
-# Should probably read other packages to see how they handle testing but it's kind
-# of fun to wing it and see how others do it after
-
-## Visualization Tests ----------
-
-# assuming you have output
-# out<-DE_run(x,m,f)
-
-results(out,contrast("something useful with new dataset"))
-# yeah it's time to find a new dataset that actually has some differences
+## visualization test
 
 

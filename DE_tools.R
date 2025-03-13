@@ -8,7 +8,7 @@
 
 # TODO: review the S3 classes documentation, would be good for future projects
 
-if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr)) {
+if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr) | !require(EnhancedVolcano)) {
   writeLines(readLines("requirements.txt"))
   stop("You don't have all of the necessary libraries loaded... please see the
          requirements.txt file for details")
@@ -209,7 +209,6 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
   formula<-prepped[[3]]
   if(g){genes<-prepped[[4]]}
   
-  
   # we now have counts, metadata, and formula available to us
 
   dds <- DESeqDataSetFromMatrix(countData=counts, colData=meta, design=formula)
@@ -222,28 +221,32 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
   
   if(g){return(list(dds,genes))}
   else{return(dds)}
-  
 }
 
-DE_cluster <- function(counts,res,p=0.01,genes=FALSE,normalize=TRUE,ab=0.5,heatmap=FALSE){
+DE_summary <- function(counts,res,p=0.01,genes=FALSE,normalize=TRUE,ab=0.5,heatmap=FALSE){
   ## IN: 
   # counts- the count matrix as output by DE_prep, only numbers.
   # res- the results object as determined by the user with the dds output from DE_run
-  # p- p-value to determine cutoff of candidate gene
-  # genes- a list of candidate genes if already determined or you want more specific control
-  #        of who is part of the clustering process
+  # p- p-value to determine cutoff of candidate gene, this also indicates you
+  #    handed DE_viz to handle the full list of genes and geneIDs to filter the results object
+  # genes- a list of candidate genes if already determined or the full genes matrix
   # normalize- default is to normalize the count matrix as it is likely coming in
-  #            straight from DE_run
-  # abline- customize cutoff for heirarchical clustering denrogram
+  #            straight from DE_run, but you can give a normalized count matrix
+  #            just set normalize to FALSE as well
+  # abline- customize cutoff for heirarchical clustering dendrogram
   # heatmap- optional way of presenting data
   #
   ## DOES: organizes your count matrix by normalizing if asked, creating candidate genes
   #        from a results object unless provided, and creates a cluster tree and returns
   #        relevant data to making said tree
   #
-  ## OUT: returns a the output of hclust() after some data fanangiling
+  ## OUT: returns the results for only candidate genes, a volcano plot, and cluster
+  #       dendrogram and dataframe utilizing the candidate genes only
   
   
+  # considering having each visualization have a default TRUE that can be turned off
+  # seems like horrible design but quite easy
+
   # if not passed a set of candidate genes, determine the candidate genes using
   # the given results. I am not bothering to check whether the results passed
   # match the count count matrix passed... just don't do that... please
@@ -254,12 +257,14 @@ DE_cluster <- function(counts,res,p=0.01,genes=FALSE,normalize=TRUE,ab=0.5,heatm
       unique()  
   }
   
+  #make the dataframe of only candidate genes to return
+  
+  
   #normalization
   if(normalize==TRUE){
     # I forget this right now but something over each column
     # norm_cts <- lapply(counts, use_function(x),(x,x-mean/sd)) probably looks vaguely like that
   }
-  
   
   hclust_matrix <- norm_cts %>% 
     select(-gene) %>% 
@@ -287,7 +292,7 @@ DE_cluster <- function(counts,res,p=0.01,genes=FALSE,normalize=TRUE,ab=0.5,heatm
   #  enframe() %>% 
   #  rename(gene = name, cluster = value)
   
-  return(gene_hclust)
+  return("a lot of things") # the fact I'm going to return so much means this may not make sense
 }
 
 

@@ -1,0 +1,34 @@
+---
+title: "How to Use DE_tools"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Outline
+
+My goal is to have a brief walkthrough of the minimized path to differential expression analysis, the different ways in which the functions can be used to break off from the example, and to provide a list of the functions and a brief overview of their intended use.
+
+Each of the functions also indpendently has a docsring (a little comment block) that will describe the different arguments the function expects/can handle and what form you should expect the output to be in.
+
+## Starting a Project
+
+Right now I have the functions all stored in one R file which you can source. The project is small enough and I don't know enough yet about package creation, so these tools have not gotten pieced apart into a package format that I can upload to CRAN. 
+
+Therefore, you probably got the files on a USB drive from me.
+
+Make a project, put the DE_tools.R file in the project, create a new script, follow the walk through code and replace with your data.
+
+```{r cars}
+source(DE_tools.R)
+
+# load data
+
+#prep
+#run
+#visualize
+
+```
+
