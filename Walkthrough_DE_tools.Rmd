@@ -88,18 +88,23 @@ However to have access to any of the tools within the file you need to source it
 source("DE_tools.R")
 ```
 
-This is similar to using a package except packages are stored on The Comprehensive R Archive Network (CRAN) and downloaded locally when you use install() and loaded into projects with library(). The main point is you now have access to the functions written in DE_tools.
+This is similar to using a package except packages are stored on The Comprehensive R Archive Network (CRAN) and downloaded locally when you use install() and the package functions are added to package environments with library(). The main point is you now have access to the functions written in DE_tools as they have been added to your global environment.
 
-If you don't want to copy DE_tools into the project directory you can store it somewhere else and source it using its absolute file path.
+```{r abs_file, eval = FALSE}
+# source("C:/absolute/filepath/to/DE_tools.R")
+```
 
+You can source from an absolute file path if you want to store DE_tools.R elsewhere, if you don't want to copy and paste it into each project.
+
+Sourcing this you may have hit an error telling you that you don't have the required packages installed. Read through the requirements.txt file to see which packages you need and use the Tools -> Install Packages in R Studio to download dependencies.  
 
 ### Loading in data
 
-In this example I show how to read in data from the European Bioinformatics Institute, but you can read in your own data as .tsv or .csv or even pass the filepath to the data to DE_run() or DE_prep. I will cover filepaths later, for now I will work under the assumption that you can read your data in.
+In this example I show how to read in data from the European Bioinformatics Institute.
 
 For differential expression you should have two matrices: one of counts and one of metadata information.
 
-```{r data}
+```{r data, message=FALSE}
 #Download Count Data
 counts = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/resources/DifferentialSecondaryDataFiles.RnaSeq/raw-counts")
 
@@ -107,33 +112,62 @@ counts = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/r
 meta = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/resources/ExperimentDesignFile.RnaSeq/experiment-design")
 ```
 
+Let's take a look at the structure of each of these dataframes.
 
+```{r counts}
+head(counts)
+```
 
+Counts is a datafrane of the genes and the the frequency of occurence in each sample. The important thing to note is that counts has a column of gene ids and a column of gene names as the first two columns, yours should be in this order and similarlry named gene.id and gene.name.
+
+```{r metadata}
+head(meta[,10:11])
+```
+The metadata is the relevant descriptors of cell line, species, ontology, and treatment groups for each sample in the run column. The only important ordering here is that the first column contains the sample names and the column is labeled run.
+
+That is very nearly the only things you need to do and hopefully your data was already pre-delivered in said format. The last thing we need to do is to determine a formula for the generalized liner model running in the background. This is very dependent on the question you are asking and your experimental set up.
+
+For this specific data set the experiment was to compare wild type to Snai1 knockouts in breast cancer cells.
 
 ```{r set_formula}
+meta$Sample.Characteristic.genotype.
+```
+
+This means we care about testing for the effect of genotype. The formula would be written something like this ~genotype. You may have more treatments or groups in your own data and should consider carefully how your design formula is impacting your tests. For example if you had an experiment with a group variable and a set of treatments applied to all groups then if you care about the full set of interactions on gene expression your formula would be ~group\*treatment.
+
+For the use case of DE_tools you simply need to provide the names of the columns of importance in your metadata combined with \+'s, \*'s, or :'s which are used to define formulas in R.
+
+```{r formula}
+
+factor1<-colnames(meta)[10]
+
+f<-sprintf("~%s",factor1)
+f
+```
+
+```{r run, message=FALSE}
+out<-DE_run(counts,meta,f,g=T)
+
+dds<-out[[1]]
+genes<-out[[2]]
 
 ```
 
+```{r results}
+res = results(out[[1]], contrast=c("sample.characteristic.genotype.", "wildtypegenotype", "snai1knockout"), alpha=1e-5)
 
-```{r}
+res_df<-DE_summary(res,genes,p=0.01)
+head(res_df)
 
-# factor1<-colnames(meta)[10]
-# 
-# f<-sprintf("~%s",factor1)
-# 
-# out<-DE_run(counts,meta,f,g=T)
-# 
-# dds<-out[[1]]
-# genes<-out[[2]]
-# 
-# res = results(out[[1]], contrast=c("sample.characteristic.genotype.", "wildtypegenotype", "snai1knockout"), alpha=1e-5)
-# res
-# 
-# res_df<-DE_summary(res,genes,p=0.01)
-# head(res_df)
-# 
-# c_genes<-res_df[,1]
-# out<-DE_cluster(dds,counts,c_gene)
+```
+
+```{r cluster, message=FALSE}
+c_genes<-res_df[,1]
+cluster_df<-DE_cluster(dds,counts,c_genes,cut=8) # cut=8 means I am setting the cluster size before seeing the dendrogram
+
+```
+```{r groups, echo=FALSE}
+head(cluster_df)
 ```
 
 

@@ -171,19 +171,28 @@ source("DE_tools.R")
 
 This is similar to using a package except packages are stored on The
 Comprehensive R Archive Network (CRAN) and downloaded locally when you
-use install() and loaded into projects with library(). The main point is
-you now have access to the functions written in DE_tools.
+use install() and the package functions are added to package
+environments with library(). The main point is you now have access to
+the functions written in DE_tools as they have been added to your global
+environment.
 
-If you don’t want to copy DE_tools into the project directory you can
-store it somewhere else and source it using its absolute file path.
+``` r
+# source("C:/absolute/filepath/to/DE_tools.R")
+```
+
+You can source from an absolute file path if you want to store
+DE_tools.R elsewhere, if you don’t want to copy and paste it into each
+project.
+
+Sourcing this you may have hit an error telling you that you don’t have
+the required packages installed. Read through the requirements.txt file
+to see which packages you need and use the Tools -\> Install Packages in
+R Studio to download dependencies.
 
 ### Loading in data
 
 In this example I show how to read in data from the European
-Bioinformatics Institute, but you can read in your own data as .tsv or
-.csv or even pass the filepath to the data to DE_run() or DE_prep. I
-will cover filepaths later, for now I will work under the assumption
-that you can read your data in.
+Bioinformatics Institute.
 
 For differential expression you should have two matrices: one of counts
 and one of metadata information.
@@ -196,25 +205,129 @@ counts = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/r
 meta = read.delim("https://www.ebi.ac.uk/gxa/experiments-content/E-MTAB-5244/resources/ExperimentDesignFile.RnaSeq/experiment-design")
 ```
 
+Let’s take a look at the structure of each of these dataframes.
+
 ``` r
-# factor1<-colnames(meta)[10]
-# 
-# f<-sprintf("~%s",factor1)
-# 
-# out<-DE_run(counts,meta,f,g=T)
-# 
-# dds<-out[[1]]
-# genes<-out[[2]]
-# 
-# res = results(out[[1]], contrast=c("sample.characteristic.genotype.", "wildtypegenotype", "snai1knockout"), alpha=1e-5)
-# res
-# 
-# res_df<-DE_summary(res,genes,p=0.01)
-# head(res_df)
-# 
-# c_genes<-res_df[,1]
-# out<-DE_cluster(dds,counts,c_gene)
+head(counts)
 ```
+
+    ##           Gene.ID Gene.Name ERR1736465 ERR1736466 ERR1736467 ERR1736468
+    ## 1 ENSG00000000003    TSPAN6        434        829        334        779
+    ## 2 ENSG00000000005      TNMD          0          0          0          0
+    ## 3 ENSG00000000419      DPM1       2202       3461       1627       4241
+    ## 4 ENSG00000000457     SCYL3         45         72         31        119
+    ## 5 ENSG00000000460  C1orf112        320        558        235        516
+    ## 6 ENSG00000000938       FGR          0         10          0          0
+    ##   ERR1736469 ERR1736470
+    ## 1        578        602
+    ## 2          0          0
+    ## 3       3676       3946
+    ## 4         69         92
+    ## 5        468        417
+    ## 6          0          0
+
+Counts is a datafrane of the genes and the the frequency of occurence in
+each sample. The important thing to note is that counts has a column of
+gene ids and a column of gene names as the first two columns, yours
+should be in this order and similarlry named gene.id and gene.name.
+
+``` r
+head(meta[,10:11])
+```
+
+    ##   Sample.Characteristic.genotype. Sample.Characteristic.Ontology.Term.genotype.
+    ## 1              wild type genotype                                            NA
+    ## 2              wild type genotype                                            NA
+    ## 3              wild type genotype                                            NA
+    ## 4                  Snai1 knockout                                            NA
+    ## 5                  Snai1 knockout                                            NA
+    ## 6                  Snai1 knockout                                            NA
+
+The metadata is the relevant descriptors of cell line, species,
+ontology, and treatment groups for each sample in the run column. The
+only important ordering here is that the first column contains the
+sample names and the column is labeled run.
+
+That is very nearly the only things you need to do and hopefully your
+data was already pre-delivered in said format. The last thing we need to
+do is to determine a formula for the generalized liner model running in
+the background. This is very dependent on the question you are asking
+and your experimental set up.
+
+For this specific data set the experiment was to compare wild type to
+Snai1 knockouts in breast cancer cells.
+
+``` r
+meta$Sample.Characteristic.genotype.
+```
+
+    ## [1] "wild type genotype" "wild type genotype" "wild type genotype"
+    ## [4] "Snai1 knockout"     "Snai1 knockout"     "Snai1 knockout"
+
+This means we care about testing for the effect of genotype. The formula
+would be written something like this ~genotype. You may have more
+treatments or groups in your own data and should consider carefully how
+your design formula is impacting your tests. For example if you had an
+experiment with a group variable and a set of treatments applied to all
+groups then if you care about the full set of interactions on gene
+expression your formula would be ~group\*treatment.
+
+For the use case of DE_tools you simply need to provide the names of the
+columns of importance in your metadata combined with +’s, \*’s, or :’s
+which are used to define formulas in R.
+
+``` r
+factor1<-colnames(meta)[10]
+
+f<-sprintf("~%s",factor1)
+f
+```
+
+    ## [1] "~Sample.Characteristic.genotype."
+
+``` r
+out<-DE_run(counts,meta,f,g=T)
+
+dds<-out[[1]]
+genes<-out[[2]]
+```
+
+``` r
+res = results(out[[1]], contrast=c("sample.characteristic.genotype.", "wildtypegenotype", "snai1knockout"), alpha=1e-5)
+
+res_df<-DE_summary(res,genes,p=0.01)
+head(res_df)
+```
+
+    ##         Row.names  baseMean log2FoldChange     lfcSE      stat       pvalue
+    ## 1 ensg00000001084 2025.6506      0.6079598 0.1215264  5.002700 5.653297e-07
+    ## 2 ensg00000001460  118.5259     -9.9919973 1.2042907 -8.296998 1.067754e-16
+    ## 3 ensg00000001461  518.9701     -1.3789857 0.1440883 -9.570419 1.064730e-21
+    ## 4 ensg00000001617   61.0675     -2.9498782 0.4592325 -6.423497 1.331790e-10
+    ## 5 ensg00000001629 1286.0658      0.4983303 0.1535889  3.244572 1.176273e-03
+    ## 6 ensg00000002330 1089.7154     -1.1370367 0.1178679 -9.646702 5.076181e-22
+    ##           padj gene.name
+    ## 1 5.639037e-06      gclc
+    ## 2 4.168661e-15     stpg1
+    ## 3 6.559060e-20    nipal3
+    ## 4 2.496393e-09    sema3f
+    ## 5 5.218940e-03    ankib1
+    ## 6 3.258058e-20       bad
+
+``` r
+c_genes<-res_df[,1]
+cluster_df<-DE_cluster(dds,counts,c_genes,cut=8) # cut=8 means I am setting the cluster size before seeing the dendrogram
+```
+
+![](Walkthrough_DE_tools_files/figure-gfm/cluster-1.png)<!-- -->
+
+    ##                 cutree(gene_hclust, k = cut)
+    ## ensg00000001084                            1
+    ## ensg00000001460                            2
+    ## ensg00000001461                            2
+    ## ensg00000001617                            3
+    ## ensg00000001629                            4
+    ## ensg00000002330                            2
 
 ## Extra Considerations
 

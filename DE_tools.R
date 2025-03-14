@@ -4,12 +4,11 @@
 # actually the only thing that was slowing this down was calling clean(counts), added an all=F option
 # for future use (probably should turn this into the columns you would like cleaned)
 
-# TODO: add some visualization functions
+# TODO: review how other packages handle dependencies
 
 # TODO: review the S3 classes documentation, would be good for future projects
 
-if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr) | !require(EnhancedVolcano)) {
-  writeLines(readLines("requirements.txt"))
+if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr)) {
   stop("You don't have all of the necessary libraries loaded... please see the
          requirements.txt file for details")
 }
@@ -274,7 +273,7 @@ DE_summary <- function(res,genes,p=FALSE){
   return(res_df) # the fact I'm going to return so much means this may not make sense
 }
 
-DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,heatmap=FALSE){
+DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,cut=TRUE,heatmap=FALSE){
   ## IN:
   # dds: the DESeqDataSet for normalization
   # counts- the raw count matrix or the normalized count matrix
@@ -282,6 +281,8 @@ DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,heatmap=FALSE){
   # normalize- default is to normalize the count matrix as it is likely coming in
   #            straight from DE_run, but you can give a normalized count matrix
   #            just set normalize to FALSE (also means you don't need to pass a dds)
+  # cut- set to let user input after seeing the dendrogram, input a number before
+  #      to disable the user input from terminal
   # heatmap- optional way of presenting data
   
   #nope this is going to be less user friendly
@@ -331,7 +332,8 @@ DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,heatmap=FALSE){
   
   # user will determine the amount of clusters as determined by visual analysis of
   # the dendrogram
-  while(TRUE){
+  
+  while(TRUE && cut==TRUE){
     usr_in <- readline(prompt = "Enter the number of clusters as visualized by the dendrogram: ")
     usr_in<-suppressWarnings(as.numeric(usr_in))
     
@@ -342,7 +344,14 @@ DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,heatmap=FALSE){
     }
   }
   
-  cut <- as.numeric(user_input)
+  if(cut==TRUE){ #if defaulted take the input
+    cut <- as.numeric(user_input) 
+    
+  }else{ #check prior input
+    stopifnot(is.numeric(cut))  
+    
+    }
+
   
   return(as.data.frame(cutree(gene_hclust, k = cut)))
 
