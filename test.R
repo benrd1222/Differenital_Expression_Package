@@ -78,3 +78,21 @@ while(TRUE){
     print("Please enter a numeric value")
   }
 }
+
+dds <- makeExampleDESeqDataSet(n=100,m=12)
+dds$genotype <- factor(rep(rep(c("I","II"),each=3),2))
+
+design(dds) <- ~ genotype + condition + genotype:condition
+dds <- DESeq(dds) 
+resultsNames(dds)
+
+# the condition effect for genotype I (the main effect)
+results(dds, contrast=c("condition","B","A"))
+
+# the condition effect for genotype II
+# this is, by definition, the main effect *plus* the interaction term
+# (the extra condition effect in genotype II compared to genotype I).
+results(dds, list( c("condition_B_vs_A","genotypeII.conditionB") ))
+
+# the interaction term, answering: is the condition effect *different* across genotypes?
+results(dds, name="genotypeII.conditionB")

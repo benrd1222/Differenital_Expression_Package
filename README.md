@@ -1,5 +1,6 @@
 # Differenital_Expression_Package
-A first go at package creation in R. Mainly just a collection of useful little functions for streamlining RNASeq data and performing repeated analyses and visualization
+A first go at package creation in R. Mainly just a collection of useful little functions 
+for streamlining RNASeq data and performing repeated analyses and visualization
 
 The goal is to generate a collection of functions with easy names and understandable
 arguments to reduce the R knowledge required to produce differential expression
