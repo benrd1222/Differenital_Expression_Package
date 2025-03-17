@@ -8,6 +8,14 @@
 
 # TODO: review the S3 classes documentation, would be good for future projects
 
+# TODO: when a factor has more than 2 levels the comparison requires a reference
+# level to be specified to make results easy to use after passing to DE_run
+# Therefore, have a check within DE_run that checks if the pass from DE_prep
+# has >2 factors then display options to set reference and give numerical choice
+# to choose which one is set as the reference
+## WAIT: THERE'S A POTENTIAL ALL OF THIS WAS BASED ON A TYPO, yeah I just had a typo
+# although being able to designate a reference level could be useful
+
 if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr)) {
   stop("You don't have all of the necessary libraries loaded... please see the
          requirements.txt file for details")
@@ -169,11 +177,9 @@ DE_prep <- function(x,m,f=FALSE){
     meta <- meta[,colnames(meta) %in% f_fac, drop = FALSE]
   }
   
-  meta <- as.data.frame(lapply(meta, factor)) #turn all the columns into factors
+  meta <- meta %>% mutate_all(factor)
   
-# the above specifically doesn't work when only one factor is retained. I believe
-# because it is being coereced into a vector and losing the ability to have
-  
+
   if(f != FALSE){return(list(counts,meta,formula,tolower(genes)))}
   else{return(list(counts,meta,tolower(genes)))}
 }
@@ -214,6 +220,10 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
     
   dds <- dds[rowSums(counts(dds)) > cut, ] 
   
+  # realizing that important step here is to also allow the user to enter
+ # if(length(dds$condition)>2){ ask the user for the reference condition and
+  # set the input to the reference level}
+ 
   dds <- DESeq(dds)
   
   
