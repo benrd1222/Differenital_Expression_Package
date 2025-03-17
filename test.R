@@ -35,7 +35,9 @@ head(res_df)
 
 
 c_genes<-res_df[,1]
-out<-DE_cluster(dds,counts,c_gene)
+out<-DE_cluster(dds,counts,c_genes,heatmap = T)
+
+
 
 # you can then use the output from DE_cluster to visualize over time if that was
 # the contrast or just break your candidate genes into clusters for more visualization

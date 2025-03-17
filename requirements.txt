@@ -7,6 +7,6 @@ amap
 optional: can't use heatmap option in DE_cluster
 ComplexHeatmap
 
-you also need BiocManager to install DESeq2 or EnhancedVolcano as shown in the walkthrough independent of my functions
+you also need BiocManager to install DESeq2, EnhancedVolcano, or ComplexHeatmap as shown in the walkthrough independent of my functions
 install.packages("BiocManager")
 BiocManager::install("DESeq2")

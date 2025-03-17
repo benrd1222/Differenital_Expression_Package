@@ -16,6 +16,9 @@
 ## WAIT: THERE'S A POTENTIAL ALL OF THIS WAS BASED ON A TYPO, yeah I just had a typo
 # although being able to designate a reference level could be useful
 
+# TODO: make DE_prep() deal with continuous metadata variables or note in the docstring
+# it assumes and only works with categorical variables
+
 if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr)) {
   stop("You don't have all of the necessary libraries loaded... please see the
          requirements.txt file for details")
@@ -309,6 +312,7 @@ DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,cut=TRUE,heatmap=FALSE)
   if(is.null(dds) && normalize==TRUE){stop("please provide a DESeqDataSet to estimate size factor for normalization")}
   
   
+  #DESEQ has a normalization function rlog() that we could use instead
   if(normalize==TRUE){
     #dealing with raw counts if we need to normalize
     rownames(counts)<-strip(rownames(counts))
@@ -355,25 +359,20 @@ DE_cluster <- function(dds,counts,c_genes,normalize=TRUE,cut=TRUE,heatmap=FALSE)
   }
   
   if(cut==TRUE){ #if defaulted take the input
-    cut <- as.numeric(user_input) 
+    cut <- as.numeric(usr_in) 
     
-  }else{ #check prior input
-    stopifnot(is.numeric(cut))  
-    
+  }else{ #check input: have to check here because this is if input is passed as argument rather than live input
+    stopifnot(is.numeric(cut))
     }
 
   
-  return(as.data.frame(cutree(gene_hclust, k = cut)))
-
+  #heatmap is working, would like to have the gene names instead of IDs
   if(heatmap==TRUE){
+    suppressPackageStartupMessages(library(ComplexHeatmap))
     require(ComplexHeatmap)
-    Heatmap(hclust_matrix, show_row_names = FALSE)
+    plot(Heatmap(hclust_matrix, show_row_names = FALSE))
   }
   
+  return(as.data.frame(cutree(gene_hclust, k = cut)))
+  
 }
-
-
-
-
-
-
