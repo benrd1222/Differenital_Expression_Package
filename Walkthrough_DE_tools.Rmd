@@ -94,9 +94,16 @@ This is similar to using a package except packages are stored on The Comprehensi
 # source("C:/absolute/filepath/to/DE_tools.R")
 ```
 
-You can source from an absolute file path if you want to store DE_tools.R elsewhere, if you don't want to copy and paste it into each project.
+You can also source from an absolute file path if you want to store DE_tools.R elsewhere, if you don't want to copy and paste it into each project.
 
-Sourcing this you may have hit an error telling you that you don't have the required packages installed. Read through the requirements.txt file to see which packages you need and use the Tools -> Install Packages in R Studio to download dependencies.  
+Even better, if you trust the maintainer of the code to not break it, you want to use the most up-to-date version, and not keep a copy stored locally, you can source directly from github.
+
+```{r source_from_github, message=FALSE}
+source("https://raw.githubusercontent.com/benrd1222/Differenital_Expression_Package/refs/heads/main/DE_tools.R")
+
+```
+
+Sourcing this you may have hit an error telling you that you don't have the required packages installed. Read through the requirements.txt file to see which packages you need and use the Tools -> Install Packages in R Studio to download dependencies.
 
 ### Loading in data
 
