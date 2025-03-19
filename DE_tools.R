@@ -19,6 +19,9 @@
 # TODO: make DE_prep() deal with continuous metadata variables or note in the docstring
 # it assumes and only works with categorical variables
 
+# TODO: update the difference set to display to the user when they have mismatched
+# colnames and rownames. My previous logic doesn't displat true difference
+
 if (!require(DESeq2) | !require(dplyr) | !require(tidyr) | !require(stringr)) {
   stop("You don't have all of the necessary libraries loaded... please see the
          requirements.txt file for details")

@@ -96,7 +96,7 @@ This is similar to using a package except packages are stored on The Comprehensi
 
 You can also source from an absolute file path if you want to store DE_tools.R elsewhere, if you don't want to copy and paste it into each project.
 
-Even better, if you trust the maintainer of the code to not break it, you want to use the most up-to-date version, and not keep a copy stored locally, you can source directly from github.
+Even better, if you trust the maintainer of the code, you want to use the most up-to-date version, and not keep a copy stored locally, you can source directly from github.
 
 ```{r source_from_github, message=FALSE}
 source("https://raw.githubusercontent.com/benrd1222/Differenital_Expression_Package/refs/heads/main/DE_tools.R")
