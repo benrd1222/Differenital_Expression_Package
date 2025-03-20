@@ -190,7 +190,7 @@ DE_prep <- function(x,m,f=FALSE){
   else{return(list(counts,meta,tolower(genes)))}
 }
 
-DE_run <- function(x,m,f="~1",g=F,cut=10){
+DE_run <- function(x,m,f="~1",g=F,cut=10,smallestGroupSize=FALSE){
   ## IN: x- is a counts matrix of gene expression
   # required to have the first 2 columns be Gene.ID and Gene.Name in that order,
   # or a filepath to the counts matrix
@@ -208,6 +208,8 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
   # key matrix. defaults off
   #
   # cut- is the criteria for low gene counts, defaults to 10
+  # smallestGroupSize- an optional prefiltering argument based on the the minimal number of treatments
+  # or the minimal number of samples were a zero outcome would be interesting
   #
   # DOES: runs DE_prep and runs DESeq with the desired formula
   #
@@ -223,8 +225,14 @@ DE_run <- function(x,m,f="~1",g=F,cut=10){
   # we now have counts, metadata, and formula available to us
 
   dds <- DESeqDataSetFromMatrix(countData=counts, colData=meta, design=formula)
-    
-  dds <- dds[rowSums(counts(dds)) > cut, ] 
+  
+  #pre-filtering
+  if(smallestGroupSize!=FALSE){
+    dds <- dds[rowSums(counts(dds) >= cut) >= smallestGroupSize, ] 
+  }else{
+    dds <- dds[rowSums(counts(dds) >= cut), ] #they will filter later
+  }
+   
   
   # realizing that important step here is to also allow the user to enter
  # if(length(dds$condition)>2){ ask the user for the reference condition and
