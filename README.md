@@ -15,3 +15,6 @@ about package generation in R.
 See the walkthrough.md for more details. Viewing on github should automatically
 display the html, if you are looking at the files locally hit the knit button
 located right under the files name in the editor.
+
+Moved on to better repeatable workflow projects. This code was pretty terrible,
+but I think it stands as a good testament to my growth.
